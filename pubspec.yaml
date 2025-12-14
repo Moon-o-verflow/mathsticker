@@ -1,0 +1,42 @@
+name: math_sticker
+description: 수학 함수 그래프를 스티커처럼 복사하는 유틸리티 앱
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.5.0 <4.0.0'
+  flutter: '>=3.24.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # State Management
+  flutter_riverpod: ^2.6.1
+  riverpod_annotation: ^2.3.0
+
+  # Math Parsing
+  function_tree: ^0.9.1
+
+  # Math Rendering (LaTeX)
+  flutter_math_fork: ^0.7.4
+
+  # Clipboard (temporarily disabled for UI testing - requires Rust)
+  # super_clipboard: ^0.9.1
+
+  # Icons
+  lucide_icons: ^0.257.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+  # Code Generation
+  riverpod_generator: ^2.4.0
+  build_runner: ^2.4.13
+  custom_lint: ^0.6.0
+  riverpod_lint: ^2.3.0
+
+flutter:
+  uses-material-design: true

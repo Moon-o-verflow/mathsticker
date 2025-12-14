@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(flutter create:*)",
+      "Bash(where:*)",
+      "Bash(cmd /c \"where flutter\")",
+      "Bash(cmd /c \"flutter --version\")",
+      "Bash(dir \"C:\\문범식\\programming\\mathsticker\")",
+      "Bash(flutter pub add:*)",
+      "Bash(tree:*)",
+      "Bash(cmd /c \"cd /d C:\\문범식\\programming\\mathsticker && tree /f lib\")",
+      "Bash(flutter run:*)",
+      "Bash(flutter clean:*)",
+      "Bash(flutter pub get:*)",
+      "Bash(flutter doctor:*)",
+      "Bash(cat:*)",
+      "Bash(flutter analyze:*)"
+    ]
+  }
+}
