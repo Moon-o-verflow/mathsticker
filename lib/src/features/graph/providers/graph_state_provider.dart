@@ -5,22 +5,31 @@ class ViewState {
   final double scale;
   final Offset offset;
   final bool showGrid;
+  final bool isSelectionMode;
+  final Rect? selectionRect;
 
   const ViewState({
     this.scale = 1.0,
     this.offset = Offset.zero,
     this.showGrid = true,
+    this.isSelectionMode = false,
+    this.selectionRect,
   });
 
   ViewState copyWith({
     double? scale,
     Offset? offset,
     bool? showGrid,
+    bool? isSelectionMode,
+    Rect? selectionRect,
+    bool clearSelectionRect = false,
   }) {
     return ViewState(
       scale: scale ?? this.scale,
       offset: offset ?? this.offset,
       showGrid: showGrid ?? this.showGrid,
+      isSelectionMode: isSelectionMode ?? this.isSelectionMode,
+      selectionRect: clearSelectionRect ? null : (selectionRect ?? this.selectionRect),
     );
   }
 }
@@ -77,6 +86,34 @@ class ViewStateNotifier extends StateNotifier<ViewState> {
 
   void toggleGrid() {
     state = state.copyWith(showGrid: !state.showGrid);
+  }
+
+  void toggleSelectionMode() {
+    final newMode = !state.isSelectionMode;
+    state = state.copyWith(
+      isSelectionMode: newMode,
+      clearSelectionRect: true,
+    );
+  }
+
+  void setSelectionMode(bool enabled) {
+    state = state.copyWith(
+      isSelectionMode: enabled,
+      clearSelectionRect: !enabled,
+    );
+  }
+
+  void setSelectionRect(Rect? rect) {
+    state = state.copyWith(selectionRect: rect);
+  }
+
+  void updateSelectionRect(Offset start, Offset current) {
+    final rect = Rect.fromPoints(start, current);
+    state = state.copyWith(selectionRect: rect);
+  }
+
+  void clearSelection() {
+    state = state.copyWith(clearSelectionRect: true);
   }
 }
 

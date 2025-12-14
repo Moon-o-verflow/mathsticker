@@ -21,8 +21,8 @@ dependencies:
   # Math Rendering (LaTeX)
   flutter_math_fork: ^0.7.4
 
-  # Clipboard (temporarily disabled for UI testing - requires Rust)
-  # super_clipboard: ^0.9.1
+  # Clipboard (using pasteboard for simpler Windows support)
+  pasteboard: ^0.3.0
 
   # Icons
   lucide_icons: ^0.257.0
