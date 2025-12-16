@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:function_tree/function_tree.dart';
 
 // Default colors for equations
 const List<Color> equationColors = [
@@ -17,6 +18,7 @@ class EquationItem {
   final Color color;
   final bool isSelected;
   final int cursorPosition;
+  final String? errorText;
 
   const EquationItem({
     required this.id,
@@ -24,7 +26,11 @@ class EquationItem {
     this.color = Colors.black,
     this.isSelected = false,
     this.cursorPosition = 0,
+    this.errorText,
   });
+
+  bool get hasError => errorText != null;
+  bool get isValid => errorText == null && expression.isNotEmpty;
 
   EquationItem copyWith({
     String? id,
@@ -32,6 +38,8 @@ class EquationItem {
     Color? color,
     bool? isSelected,
     int? cursorPosition,
+    String? errorText,
+    bool clearError = false,
   }) {
     return EquationItem(
       id: id ?? this.id,
@@ -39,6 +47,7 @@ class EquationItem {
       color: color ?? this.color,
       isSelected: isSelected ?? this.isSelected,
       cursorPosition: cursorPosition ?? this.cursorPosition,
+      errorText: clearError ? null : (errorText ?? this.errorText),
     );
   }
 }
@@ -138,15 +147,58 @@ class EquationsNotifier extends StateNotifier<EquationsState> {
   void updateExpression(String id, String expression, int cursorPosition) {
     final updatedEquations = state.equations.map((e) {
       if (e.id == id) {
+        // Validate expression
+        String? errorText;
+        if (expression.isNotEmpty) {
+          errorText = _validateExpression(expression);
+        }
+
         return e.copyWith(
           expression: expression,
           cursorPosition: cursorPosition,
+          errorText: errorText,
+          clearError: errorText == null,
         );
       }
       return e;
     }).toList();
 
     state = state.copyWith(equations: updatedEquations);
+  }
+
+  String? _validateExpression(String expression) {
+    try {
+      expression.toSingleVariableFunction();
+      return null;
+    } catch (e) {
+      return _formatErrorMessage(e.toString());
+    }
+  }
+
+  String _formatErrorMessage(String error) {
+    final lowerError = error.toLowerCase();
+
+    if (lowerError.contains('bad expression') ||
+        lowerError.contains('formatexception')) {
+      return '수식 형식이 올바르지 않습니다';
+    }
+    if (lowerError.contains('parenthes') ||
+        lowerError.contains('bracket') ||
+        lowerError.contains('unbalanced') ||
+        lowerError.contains('unclosed')) {
+      return '괄호를 확인해주세요';
+    }
+    if (lowerError.contains('unknown') ||
+        lowerError.contains('undefined') ||
+        lowerError.contains('unrecognized')) {
+      return '알 수 없는 함수입니다';
+    }
+    if (lowerError.contains('unexpected') ||
+        lowerError.contains('invalid') ||
+        lowerError.contains('syntax')) {
+      return '수식 형식이 올바르지 않습니다';
+    }
+    return '수식 오류';
   }
 
   void updateColor(String id, Color color) {

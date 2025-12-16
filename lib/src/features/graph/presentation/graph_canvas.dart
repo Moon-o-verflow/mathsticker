@@ -203,10 +203,24 @@ class _GraphCanvasState extends ConsumerState<GraphCanvas> {
 
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('스티커 복사 완료!'),
-            duration: Duration(seconds: 2),
+          SnackBar(
+            content: const Row(
+              children: [
+                Icon(Icons.check_circle, color: Colors.white, size: 20),
+                SizedBox(width: 12),
+                Text(
+                  '스티커 복사 완료!',
+                  style: TextStyle(fontWeight: FontWeight.w500),
+                ),
+              ],
+            ),
+            backgroundColor: Colors.green[600],
+            duration: const Duration(seconds: 2),
             behavior: SnackBarBehavior.floating,
+            margin: const EdgeInsets.all(16),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
           ),
         );
       }
@@ -214,14 +228,43 @@ class _GraphCanvasState extends ConsumerState<GraphCanvas> {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('복사 실패: $e'),
-            duration: const Duration(seconds: 2),
+            content: Row(
+              children: [
+                const Icon(Icons.error_outline, color: Colors.white, size: 20),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    '복사 실패: ${_formatError(e)}',
+                    style: const TextStyle(fontWeight: FontWeight.w500),
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: Colors.red[600],
+            duration: const Duration(seconds: 3),
             behavior: SnackBarBehavior.floating,
-            backgroundColor: Colors.red,
+            margin: const EdgeInsets.all(16),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
           ),
         );
       }
     }
+  }
+
+  String _formatError(Object error) {
+    final errorStr = error.toString().toLowerCase();
+    if (errorStr.contains('canvas not found')) {
+      return '캔버스를 찾을 수 없습니다';
+    }
+    if (errorStr.contains('failed to convert')) {
+      return '이미지 변환에 실패했습니다';
+    }
+    if (errorStr.contains('permission') || errorStr.contains('denied')) {
+      return '클립보드 접근 권한이 없습니다';
+    }
+    return '알 수 없는 오류가 발생했습니다';
   }
 }
 
