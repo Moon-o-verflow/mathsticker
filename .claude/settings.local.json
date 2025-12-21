@@ -14,7 +14,17 @@
       "Bash(flutter pub get:*)",
       "Bash(flutter doctor:*)",
       "Bash(cat:*)",
-      "Bash(flutter analyze:*)"
+      "Bash(flutter analyze:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(tasklist:*)",
+      "Bash(findstr:*)",
+      "Bash(taskkill /F /PID 28228)",
+      "Bash(cmd /c \"taskkill /F /IM math_sticker.exe\")",
+      "Bash(taskkill /F /PID 21992)",
+      "Bash(wmic process where \"name=''math_sticker.exe''\" delete)",
+      "Bash(cd:*)"
     ]
   }
 }

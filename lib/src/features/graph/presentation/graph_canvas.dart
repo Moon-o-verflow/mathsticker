@@ -1,6 +1,10 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:lucide_icons/lucide_icons.dart';
+import '../../../app.dart';
+import '../../ads/ad_manager.dart';
 import '../../input/providers/equation_provider.dart';
 import '../../export/clipboard_service.dart';
 import '../providers/graph_state_provider.dart';
@@ -27,8 +31,9 @@ class _GraphCanvasState extends ConsumerState<GraphCanvas> {
     final viewState = ref.watch(viewStateProvider);
     final isSelectionMode = viewState.isSelectionMode;
 
-    // Convert EquationItem list to EquationData list for the painter
+    // Only include valid equations (filter out those with errors)
     final equationDataList = equationsState.equations
+        .where((eq) => eq.isValid)
         .map((eq) => EquationData(
               expression: eq.expression,
               color: eq.color,
@@ -45,7 +50,7 @@ class _GraphCanvasState extends ConsumerState<GraphCanvas> {
 
           return Stack(
             children: [
-              // Main canvas with gesture detection (when not in selection mode)
+              // Main canvas with gesture detection
               GraphSelectionOverlay(
                 child: GestureDetector(
                   onScaleStart: isSelectionMode
@@ -59,12 +64,10 @@ class _GraphCanvasState extends ConsumerState<GraphCanvas> {
                       : (details) {
                           final viewNotifier = ref.read(viewStateProvider.notifier);
 
-                          // Handle zoom
                           if (details.scale != 1.0) {
                             final newScale =
                                 (_previousScale * details.scale).clamp(0.1, 10.0);
 
-                            // Calculate focal point in math coordinates for zoom centering
                             final focalPixel = details.localFocalPoint;
                             final baseCoords = CoordinateSystemHelper.create(
                               size: size,
@@ -74,7 +77,6 @@ class _GraphCanvasState extends ConsumerState<GraphCanvas> {
 
                             final focalMath = baseCoords.pixelToMath(focalPixel);
 
-                            // Calculate new offset to keep focal point stationary
                             final scaleFactor = newScale / _previousScale;
                             final newOffsetX = focalMath.x -
                                 (focalMath.x - _previousOffset.dx) / scaleFactor;
@@ -87,7 +89,6 @@ class _GraphCanvasState extends ConsumerState<GraphCanvas> {
                             );
                           }
 
-                          // Handle pan
                           if (details.scale == 1.0) {
                             final panDelta = details.focalPointDelta;
                             final currentCoords = CoordinateSystemHelper.create(
@@ -96,7 +97,6 @@ class _GraphCanvasState extends ConsumerState<GraphCanvas> {
                               offset: viewState.offset,
                             );
 
-                            // Convert pixel delta to math delta
                             final mathDeltaX = -panDelta.dx / currentCoords.scaleX;
                             final mathDeltaY = panDelta.dy / currentCoords.scaleY;
 
@@ -138,31 +138,31 @@ class _GraphCanvasState extends ConsumerState<GraphCanvas> {
           children: [
             // Top-left: Grid toggle button
             Positioned(
-              top: 12,
-              left: 12,
-              child: _CanvasButton(
+              top: 16,
+              left: 16,
+              child: _GlassButton(
                 icon: viewState.showGrid ? LucideIcons.grid : LucideIcons.square,
                 tooltip: viewState.showGrid ? '격자 숨기기' : '격자 표시',
                 onTap: () => ref.read(viewStateProvider.notifier).toggleGrid(),
               ),
             ),
 
-            // Top-right: Selection mode toggle (scissors) and Copy button
+            // Top-right: Selection mode toggle and Copy button
             Positioned(
-              top: 12,
-              right: 12,
+              top: 16,
+              right: 16,
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  _CanvasButton(
+                  _GlassButton(
                     icon: LucideIcons.scissors,
                     tooltip: viewState.isSelectionMode ? '선택 모드 해제' : '영역 선택',
                     isActive: viewState.isSelectionMode,
                     onTap: () => ref.read(viewStateProvider.notifier).toggleSelectionMode(),
                   ),
-                  const SizedBox(width: 8),
-                  _CanvasButton(
-                    icon: LucideIcons.copy,
+                  const SizedBox(width: 10),
+                  _GlassButton(
+                    icon: LucideIcons.clipboard,
                     tooltip: '클립보드에 복사',
                     onTap: () => _copyToClipboard(context, canvasSize),
                   ),
@@ -172,10 +172,10 @@ class _GraphCanvasState extends ConsumerState<GraphCanvas> {
 
             // Bottom-right: Reset view button
             Positioned(
-              bottom: 12,
-              right: 12,
-              child: _CanvasButton(
-                icon: LucideIcons.home,
+              bottom: 16,
+              right: 16,
+              child: _GlassButton(
+                icon: LucideIcons.locate,
                 tooltip: '원점 복귀',
                 onTap: () => ref.read(viewStateProvider.notifier).reset(),
               ),
@@ -191,12 +191,12 @@ class _GraphCanvasState extends ConsumerState<GraphCanvas> {
     final selectionRect = viewState.selectionRect;
 
     try {
+      // First, perform the copy operation
       await ClipboardService.copyGraphToClipboard(
         graphCanvasKey,
         cropRect: selectionRect,
       );
 
-      // Exit selection mode after copying
       if (viewState.isSelectionMode) {
         ref.read(viewStateProvider.notifier).setSelectionMode(false);
       }
@@ -204,17 +204,17 @@ class _GraphCanvasState extends ConsumerState<GraphCanvas> {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Row(
+            content: Row(
               children: [
-                Icon(Icons.check_circle, color: Colors.white, size: 20),
-                SizedBox(width: 12),
+                const Icon(LucideIcons.checkCircle, color: Colors.white, size: 18),
+                const SizedBox(width: 12),
                 Text(
                   '스티커 복사 완료!',
-                  style: TextStyle(fontWeight: FontWeight.w500),
+                  style: GoogleFonts.inter(fontWeight: FontWeight.w500),
                 ),
               ],
             ),
-            backgroundColor: Colors.green[600],
+            backgroundColor: AppColors.success,
             duration: const Duration(seconds: 2),
             behavior: SnackBarBehavior.floating,
             margin: const EdgeInsets.all(16),
@@ -224,23 +224,26 @@ class _GraphCanvasState extends ConsumerState<GraphCanvas> {
           ),
         );
       }
+
+      // After successful copy, trigger ad manager (shows interstitial every 3rd copy)
+      await AdManager().onCopyTriggered();
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Row(
               children: [
-                const Icon(Icons.error_outline, color: Colors.white, size: 20),
+                const Icon(LucideIcons.alertCircle, color: Colors.white, size: 18),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
                     '복사 실패: ${_formatError(e)}',
-                    style: const TextStyle(fontWeight: FontWeight.w500),
+                    style: GoogleFonts.inter(fontWeight: FontWeight.w500),
                   ),
                 ),
               ],
             ),
-            backgroundColor: Colors.red[600],
+            backgroundColor: AppColors.error,
             duration: const Duration(seconds: 3),
             behavior: SnackBarBehavior.floating,
             margin: const EdgeInsets.all(16),
@@ -268,13 +271,14 @@ class _GraphCanvasState extends ConsumerState<GraphCanvas> {
   }
 }
 
-class _CanvasButton extends StatelessWidget {
+/// Glassmorphism-style floating button
+class _GlassButton extends StatelessWidget {
   final IconData icon;
   final String tooltip;
   final VoidCallback onTap;
   final bool isActive;
 
-  const _CanvasButton({
+  const _GlassButton({
     required this.icon,
     required this.tooltip,
     required this.onTap,
@@ -283,23 +287,44 @@ class _CanvasButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: isActive ? Colors.blue : Colors.white,
-      elevation: 2,
-      borderRadius: BorderRadius.circular(8),
-      child: InkWell(
+    return Tooltip(
+      message: tooltip,
+      child: GestureDetector(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
-        child: Tooltip(
-          message: tooltip,
-          child: Container(
-            width: 40,
-            height: 40,
-            alignment: Alignment.center,
-            child: Icon(
-              icon,
-              size: 20,
-              color: isActive ? Colors.white : Colors.grey[700],
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: isActive
+                    ? AppColors.primary.withValues(alpha: 0.9)
+                    : Colors.white.withValues(alpha: 0.85),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: isActive
+                      ? AppColors.primary
+                      : Colors.white.withValues(alpha: 0.5),
+                  width: 1,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.08),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Center(
+                child: Icon(
+                  icon,
+                  size: 20,
+                  color: isActive ? Colors.white : AppColors.textPrimary,
+                ),
+              ),
             ),
           ),
         ),
@@ -308,7 +333,7 @@ class _CanvasButton extends StatelessWidget {
   }
 }
 
-// Helper class to create CoordinateSystem without importing it directly
+// Helper class to create CoordinateSystem
 class CoordinateSystemHelper {
   static _TempCoords create({
     required Size size,

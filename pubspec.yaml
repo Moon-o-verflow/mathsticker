@@ -26,6 +26,8 @@ dependencies:
 
   # Icons
   lucide_icons: ^0.257.0
+  google_fonts: ^6.3.3
+  google_mobile_ads: ^7.0.0
 
 dev_dependencies:
   flutter_test:

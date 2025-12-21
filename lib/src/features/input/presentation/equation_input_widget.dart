@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_math_fork/flutter_math.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:lucide_icons/lucide_icons.dart';
+import '../../../app.dart';
 import '../providers/equation_provider.dart';
 
 class EquationInputWidget extends ConsumerStatefulWidget {
@@ -12,7 +15,6 @@ class EquationInputWidget extends ConsumerStatefulWidget {
 }
 
 class _EquationInputWidgetState extends ConsumerState<EquationInputWidget> {
-  // Track previous error states for animation
   final Map<String, bool> _previousErrorStates = {};
 
   @override
@@ -21,17 +23,16 @@ class _EquationInputWidgetState extends ConsumerState<EquationInputWidget> {
     final equations = state.equations;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
       child: Row(
         children: [
-          // Equation list
           Expanded(
-            child: ListView.builder(
+            child: ListView.separated(
               scrollDirection: Axis.horizontal,
-              itemCount: equations.length + 1, // +1 for add button
+              itemCount: equations.length + 1,
+              separatorBuilder: (context, index) => const SizedBox(width: 8),
               itemBuilder: (context, index) {
                 if (index == equations.length) {
-                  // Add button at the end
                   return _buildAddButton(ref);
                 }
                 return _buildEquationChip(context, ref, equations[index]);
@@ -48,43 +49,34 @@ class _EquationInputWidgetState extends ConsumerState<EquationInputWidget> {
     final isSelected = equation.isSelected;
     final hasError = equation.hasError;
 
-    // Check if this is a new error (for animation trigger)
     final previousHadError = _previousErrorStates[equation.id] ?? false;
     final isNewError = hasError && !previousHadError;
 
-    // Update error state tracking
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _previousErrorStates[equation.id] = hasError;
     });
 
-    // Determine border color based on error state
-    Color borderColor;
-    if (hasError) {
-      borderColor = Colors.red;
-    } else if (isSelected) {
-      borderColor = equation.color;
-    } else {
-      borderColor = Colors.grey[300]!;
-    }
-
-    Widget chipContent = Container(
-      margin: const EdgeInsets.symmetric(horizontal: 4),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+    Widget chipContent = AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      margin: const EdgeInsets.symmetric(vertical: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       decoration: BoxDecoration(
         color: hasError
-            ? Colors.red.withValues(alpha: 0.08)
-            : (isSelected ? Colors.white : Colors.grey[100]),
-        borderRadius: BorderRadius.circular(20),
+            ? AppColors.error.withValues(alpha: 0.06)
+            : (isSelected ? Colors.white : AppColors.surfaceLight),
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: borderColor,
-          width: (isSelected || hasError) ? 2 : 1,
+          color: hasError
+              ? AppColors.error
+              : (isSelected ? equation.color : AppColors.separator),
+          width: isSelected || hasError ? 2 : 1,
         ),
         boxShadow: isSelected
             ? [
                 BoxShadow(
-                  color: (hasError ? Colors.red : equation.color)
-                      .withValues(alpha: 0.3),
-                  blurRadius: 4,
+                  color: (hasError ? AppColors.error : equation.color)
+                      .withValues(alpha: 0.2),
+                  blurRadius: 8,
                   offset: const Offset(0, 2),
                 ),
               ]
@@ -93,28 +85,15 @@ class _EquationInputWidgetState extends ConsumerState<EquationInputWidget> {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Color indicator (with error warning)
           _buildColorIndicator(equation, hasError),
-          const SizedBox(width: 8),
-          // Equation display
+          const SizedBox(width: 10),
           _buildEquationDisplay(equation),
-          // Delete button
-          const SizedBox(width: 4),
-          GestureDetector(
-            onTap: () {
-              ref.read(equationsProvider.notifier).remove(equation.id);
-            },
-            child: Icon(
-              Icons.close,
-              size: 16,
-              color: Colors.grey[400],
-            ),
-          ),
+          const SizedBox(width: 8),
+          _buildDeleteButton(equation, ref),
         ],
       ),
     );
 
-    // Wrap with shake animation if there's a new error
     if (isNewError) {
       chipContent = _ShakeAnimation(
         key: ValueKey('shake_${equation.id}_${DateTime.now().millisecondsSinceEpoch}'),
@@ -131,24 +110,23 @@ class _EquationInputWidgetState extends ConsumerState<EquationInputWidget> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           chipContent,
-          // Error message - always show for equations with errors
           if (hasError)
             Padding(
-              padding: const EdgeInsets.only(left: 12, top: 4),
+              padding: const EdgeInsets.only(left: 14, top: 4),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(
-                    Icons.warning_amber_rounded,
+                  Icon(
+                    LucideIcons.alertCircle,
                     size: 12,
-                    color: Colors.red,
+                    color: AppColors.error,
                   ),
                   const SizedBox(width: 4),
                   Text(
                     equation.errorText!,
-                    style: const TextStyle(
+                    style: GoogleFonts.inter(
                       fontSize: 11,
-                      color: Colors.red,
+                      color: AppColors.error,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -163,15 +141,15 @@ class _EquationInputWidgetState extends ConsumerState<EquationInputWidget> {
   Widget _buildColorIndicator(EquationItem equation, bool hasError) {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
-      width: hasError ? 16 : 12,
-      height: hasError ? 16 : 12,
+      width: hasError ? 18 : 14,
+      height: hasError ? 18 : 14,
       decoration: BoxDecoration(
-        color: hasError ? Colors.red : equation.color,
+        color: hasError ? AppColors.error : equation.color,
         shape: BoxShape.circle,
         boxShadow: hasError
             ? [
                 BoxShadow(
-                  color: Colors.red.withValues(alpha: 0.4),
+                  color: AppColors.error.withValues(alpha: 0.4),
                   blurRadius: 4,
                   spreadRadius: 1,
                 ),
@@ -179,8 +157,28 @@ class _EquationInputWidgetState extends ConsumerState<EquationInputWidget> {
             : null,
       ),
       child: hasError
-          ? const Icon(Icons.priority_high, size: 12, color: Colors.white)
+          ? const Icon(LucideIcons.alertTriangle, size: 10, color: Colors.white)
           : null,
+    );
+  }
+
+  Widget _buildDeleteButton(EquationItem equation, WidgetRef ref) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () {
+          ref.read(equationsProvider.notifier).remove(equation.id);
+        },
+        borderRadius: BorderRadius.circular(10),
+        child: Padding(
+          padding: const EdgeInsets.all(2),
+          child: Icon(
+            LucideIcons.x,
+            size: 14,
+            color: AppColors.textSecondary,
+          ),
+        ),
+      ),
     );
   }
 
@@ -195,16 +193,19 @@ class _EquationInputWidgetState extends ConsumerState<EquationInputWidget> {
         children: [
           Text(
             'y = ',
-            style: TextStyle(
-              fontSize: 16,
-              color: Colors.grey[400],
+            style: GoogleFonts.jetBrainsMono(
+              fontSize: 15,
+              color: AppColors.textSecondary,
             ),
           ),
           if (isSelected)
             Container(
               width: 2,
-              height: 20,
-              color: equation.color,
+              height: 18,
+              decoration: BoxDecoration(
+                color: equation.color,
+                borderRadius: BorderRadius.circular(1),
+              ),
             ),
         ],
       );
@@ -217,9 +218,9 @@ class _EquationInputWidgetState extends ConsumerState<EquationInputWidget> {
         children: [
           Text(
             'y = ',
-            style: TextStyle(
-              fontSize: 16,
-              color: Colors.grey[600],
+            style: GoogleFonts.jetBrainsMono(
+              fontSize: 15,
+              color: AppColors.textSecondary,
             ),
           ),
           if (isSelected)
@@ -234,10 +235,10 @@ class _EquationInputWidgetState extends ConsumerState<EquationInputWidget> {
   Widget _buildEquationText(String expression) {
     return Math.tex(
       _convertToLatex(expression),
-      textStyle: const TextStyle(fontSize: 16),
+      textStyle: GoogleFonts.jetBrainsMono(fontSize: 15),
       onErrorFallback: (error) => Text(
         expression,
-        style: const TextStyle(fontSize: 16),
+        style: GoogleFonts.jetBrainsMono(fontSize: 15),
       ),
     );
   }
@@ -253,24 +254,27 @@ class _EquationInputWidgetState extends ConsumerState<EquationInputWidget> {
         if (before.isNotEmpty)
           Math.tex(
             _convertToLatex(before),
-            textStyle: const TextStyle(fontSize: 16),
+            textStyle: GoogleFonts.jetBrainsMono(fontSize: 15),
             onErrorFallback: (error) => Text(
               before,
-              style: const TextStyle(fontSize: 16),
+              style: GoogleFonts.jetBrainsMono(fontSize: 15),
             ),
           ),
         Container(
           width: 2,
-          height: 20,
-          color: cursorColor,
+          height: 18,
+          decoration: BoxDecoration(
+            color: cursorColor,
+            borderRadius: BorderRadius.circular(1),
+          ),
         ),
         if (after.isNotEmpty)
           Math.tex(
             _convertToLatex(after),
-            textStyle: const TextStyle(fontSize: 16),
+            textStyle: GoogleFonts.jetBrainsMono(fontSize: 15),
             onErrorFallback: (error) => Text(
               after,
-              style: const TextStyle(fontSize: 16),
+              style: GoogleFonts.jetBrainsMono(fontSize: 15),
             ),
           ),
       ],
@@ -283,17 +287,17 @@ class _EquationInputWidgetState extends ConsumerState<EquationInputWidget> {
         ref.read(equationsProvider.notifier).add();
       },
       child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 4),
-        padding: const EdgeInsets.all(8),
+        margin: const EdgeInsets.symmetric(vertical: 2),
+        padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
-          color: Colors.grey[100],
+          color: AppColors.surface,
           shape: BoxShape.circle,
-          border: Border.all(color: Colors.grey[300]!),
+          border: Border.all(color: AppColors.separator),
         ),
         child: Icon(
-          Icons.add,
-          size: 20,
-          color: Colors.grey[600],
+          LucideIcons.plus,
+          size: 18,
+          color: AppColors.textSecondary,
         ),
       ),
     );
@@ -313,7 +317,6 @@ class _EquationInputWidgetState extends ConsumerState<EquationInputWidget> {
   }
 }
 
-/// Shake animation widget for error feedback
 class _ShakeAnimation extends StatefulWidget {
   final Widget child;
 
@@ -337,12 +340,12 @@ class _ShakeAnimationState extends State<_ShakeAnimation>
     );
 
     _offsetAnimation = TweenSequence<double>([
-      TweenSequenceItem(tween: Tween(begin: 0, end: -8), weight: 1),
-      TweenSequenceItem(tween: Tween(begin: -8, end: 8), weight: 2),
-      TweenSequenceItem(tween: Tween(begin: 8, end: -6), weight: 2),
+      TweenSequenceItem(tween: Tween(begin: 0, end: -6), weight: 1),
       TweenSequenceItem(tween: Tween(begin: -6, end: 6), weight: 2),
-      TweenSequenceItem(tween: Tween(begin: 6, end: -3), weight: 2),
-      TweenSequenceItem(tween: Tween(begin: -3, end: 0), weight: 1),
+      TweenSequenceItem(tween: Tween(begin: 6, end: -4), weight: 2),
+      TweenSequenceItem(tween: Tween(begin: -4, end: 4), weight: 2),
+      TweenSequenceItem(tween: Tween(begin: 4, end: -2), weight: 2),
+      TweenSequenceItem(tween: Tween(begin: -2, end: 0), weight: 1),
     ]).animate(CurvedAnimation(
       parent: _controller,
       curve: Curves.easeInOut,
